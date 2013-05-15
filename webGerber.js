@@ -763,11 +763,6 @@ function init(layers) {
         new THREE.MeshFaceMaterial(materials));
     board.position.y = -100;
 
-    if(has3D)
-        scene.add(board);
-
-    // Add the sides.
-
     // Create all the holes.
     var holeMaterial = boardMaterial.clone();
     holeMaterial.side = THREE.BackSide;
@@ -785,8 +780,8 @@ function init(layers) {
                 hole.position.z = h/2-(cmd[3]*layers[i].scale-limits.minY);
                 board.add(hole);
             }
-    if(!has3D)
-        scene.add(board);
+
+    scene.add(board);
 
     camera.lookAt(board.position);
 

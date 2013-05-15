@@ -55,25 +55,25 @@ wG.colors[wG.SILK]   = '#ffffff';
 // Guesses a layer's type from its filename.
 wG.guessLayer = function guessLayer(f) {
     f = f.toLowerCase();
-    if(f.match(/\.drl|\.drd|\.txt/))
+    if(f.match(/\.excellon|\.drl|\.drd|\.txt/))
         return [wG.BOTTOM|wG.TOP, wG.BOARD];
-    if(f.match(/\.out|outline/))
+    if(f.match(/\.dim|\.out|outline/))
         return [wG.BOTTOM|wG.TOP, wG.OUTLINE];
-    if(f.match(/\.gbl|\.sol/) || f.match(/bot/) && f.match(/copper|signal/))
+    if(f.match(/\.bot|\.gbl|\.sol/) || f.match(/bot/) && f.match(/copper|signal/))
         return [wG.BOTTOM, wG.COPPER];
-    if(f.match(/\.gbs|\.sts/) || f.match(/bot/) && f.match(/s(?:old(?:er|)|)ma?(?:sk|ks)/))
+    if(f.match(/\.msb|\.gbs|\.sts/) || f.match(/bot/) && f.match(/s(?:old(?:er|)|)ma?(?:sk|ks)/))
         return [wG.BOTTOM, wG.SOLDER];
     if(f.match(/\.gbp|\.crs/) || f.match(/bot/) && f.match(/pas/))
         return [wG.BOTTOM, wG.PASTE];
-    if(f.match(/\.gbo|\.pls/) || f.match(/bot/) && f.match(/si?lk/))
+    if(f.match(/\.slb|\.gbo|\.pls/) || f.match(/bot/) && f.match(/si?lk/))
         return [wG.BOTTOM, wG.SILK];
-    if(f.match(/\.gtl|\.cmp/) || f.match(/top/) && f.match(/copper|signal/))
+    if(f.match(/\.top|\.gtl|\.cmp/) || f.match(/top/) && f.match(/copper|signal/))
         return [wG.TOP, wG.COPPER];
-    if(f.match(/\.gts|\.stc/) || f.match(/top/) && f.match(/s(?:old(?:er|)|)ma?(?:sk|ks)/))
+    if(f.match(/\.mst|\.gts|\.stc/) || f.match(/top/) && f.match(/s(?:old(?:er|)|)ma?(?:sk|ks)/))
         return [wG.TOP, wG.SOLDER];
     if(f.match(/\.gtp|\.crc/) || f.match(/top/) && f.match(/pas/))
         return [wG.TOP, wG.PASTE];
-    if(f.match(/\.gto|\.plc/) || f.match(/top/) && f.match(/si?lk/))
+    if(f.match(/\.slt|\.gto|\.plc/) || f.match(/top/) && f.match(/si?lk/))
         return [wG.TOP, wG.SILK];
 };
 
@@ -81,7 +81,7 @@ wG.guessLayer = function guessLayer(f) {
 wG.loadDrill = function loadDrill(text) {
     text = text.replace(/^[\s%]*M48/, '');
     text = text.replace(/[^\S\n]+/g, '');
-    
+
     function numVal(x) {
         if(x[0] == '+')
             return numVal(x.slice(1));
@@ -97,11 +97,11 @@ wG.loadDrill = function loadDrill(text) {
                 x += '0';
         return parseFloat(x.slice(0, g.int)+'.'+x.slice(g.int), 10);
     }
-    
+
     var cmds = text.split('\n');
-    
+
     var g = {offA: 0, offB: 0, shapes: [], cmds: [], scale: 1}, shape, body = false, prevX = 0, prevY = 0;
-    
+
     for(var i = 0; i < cmds.length; i++) {
         var d = cmds[i];
         if(!body) {
@@ -135,7 +135,7 @@ wG.loadDrill = function loadDrill(text) {
                     dx = getNum(1);
                 if(d[0] == 'Y')
                     dy = getNum(1);
-                
+
                 // assert(!d.length);
                 for(var x = prevX, y = prevY, j = 0; j < nr; j++)
                     x += dx, y += dy, g.cmds.push([(1<<2) | 3, shape, x, y]);
@@ -161,15 +161,15 @@ wG.loadDrill = function loadDrill(text) {
 wG.load = function load(text) {
     if(text.match(/^[\s%]*M48/))
         return wG.loadDrill(text);
-    
+
     text = text.replace(/\s+/g, ''); // Get rid of any spaces/newlines.
     //text = text.replace(/%%+/g, ''); // Compact parameters.
-    
+
     // Split into data and parameters sections;
     var sections = text.split('%');
-    
+
     var g = {offA: 0, offB: 0, shapes: [], cmds: [], scale: 1}, shape = 0, macros = {}, mode = 1, inverted = false, prevX = 0, prevY = 0;
-    
+
     function numVal(x) {
         if(x[0] == '+')
             return numVal(x.slice(1));
@@ -185,7 +185,7 @@ wG.load = function load(text) {
                 x += '0';
         return parseFloat(x.slice(0, g.int)+'.'+x.slice(g.int), 10);
     }
-    
+
     // Even positions are function codes, odd ones are parameters.
     for(var i = 0; i < sections.length; i++) {
         // Ignore empty sections.
@@ -250,7 +250,7 @@ wG.load = function load(text) {
                                 m2.push(applyArgs(m1[k]).split(',').map(function(x) {return +x}));
                         }
                         g.shapes[j] = ['M', m2];
-                        
+
                     } else
                         g.shapes[j] = [r[2]].concat(args.map(function(x) {return +x}));
                     if(j < shape)
@@ -341,7 +341,7 @@ wG.touchLimits = function touchLimits(g, r) {
             rx = s[1]/2, ry = s[2]/2;
         else
             continue;
-        
+
         if(x-rx < r.minX)
             r.minX = x-rx;
         if(y-ry < r.minY)
@@ -357,17 +357,17 @@ wG.touchLimits = function touchLimits(g, r) {
 // Renders one layer onto a 2D canvas.
 wG.renderLayer = function renderLayer(canvas, g, limits) {
     var ctx = canvas.getContext('2d');
-    
+
     // Use only for debugging purposes
     //var color = g.type ? wG.colors[g.type] : 'black';
     var color = 'black';
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = color, ctx.strokeStyle = color;
-    
+
     var scaleX = canvas.width / (limits.maxX-limits.minX) * g.scale, scaleY = canvas.height / (limits.maxY-limits.minY) * g.scale;
     var scaleMax = Math.max(scaleX, scaleY);
     ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-    
+
     var prevX = 0, prevY = 0, minX = limits.minX/g.scale, minY = limits.minY/g.scale;
     for(var i = 0; i < g.cmds.length; i++) {
         var mode = (g.cmds[i][0] >> 2), op = g.cmds[i][0] & 3;
@@ -469,7 +469,7 @@ wG.renderLayer = function renderLayer(canvas, g, limits) {
                         prevX = x, prevY = y;
                         continue;
                     }
-                    
+
                     //HACK Copper lines get some extra thickness.
                     if(g.type == wG.COPPER)
                         ctx.lineWidth = Math.ceil(s[1]*scaleMax/3+.01)/scaleMax*3;
@@ -520,7 +520,7 @@ wG.renderLayer = function renderLayer(canvas, g, limits) {
         }
         prevX = x, prevY = y;
     }
-    
+
     // Color the canvas.
     ctx.fillStyle = g.type ? wG.colors[g.type] : 'black';
     ctx.globalCompositeOperation = g.type == wG.SOLDER ? 'source-out' : 'source-in';
@@ -572,7 +572,7 @@ wG.makeBoard = function makeBoard(w, h, invertedY) {
     while(size < maxSize && size < wG.maxTexSize)
         size <<= 1;*/
     canvas.width = wG.texSize(w*wG.ppmm), canvas.height = wG.texSize(h*wG.ppmm);
-    
+
     // Don't allow mipmapping for stretched textures.
     var stretch = canvas.width/canvas.height;
     if(stretch > 4)
@@ -580,7 +580,7 @@ wG.makeBoard = function makeBoard(w, h, invertedY) {
     else if(stretch < .25)
         canvas.height--;
     canvas.invertedY = invertedY;
-    
+
     // Debugging: adds canvas to the page.
     /*canvas.className = 'layer';
     document.body.appendChild(canvas);*/
@@ -630,7 +630,7 @@ wG.findOutline = function findOutline(layers) {
             var line = [prevX, prevY, x, y, r];
             if(mode == 6 || mode == 7)
                 line.push(cmd[4]*scale, cmd[5]*scale, mode == 6);
-            
+
             // Try to connect it with the previous line.
             if(oPrev) {
                 var dx = oPrev[2]-prevX, dy = oPrev[3]-prevY, sr = (r+oPrev[4]);
@@ -709,7 +709,7 @@ function init(layers) {
         layers[i].enabled = true;
     }
     var w = limits.maxX-limits.minX, h = limits.maxY-limits.minY;
-    
+
     var renderer, has3D = true;
     try {
         renderer = new THREE.WebGLRenderer({antialias: true});
@@ -721,22 +721,22 @@ function init(layers) {
         wG.ppmm = 20;
         renderer = new THREE.CanvasRenderer({antialias: true});
     }
-    
+
     var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(40);
     camera.up.set(0, 0, -1);
     scene.add(camera);
-    
+
     // Ambient light.
     var ambientLight = new THREE.AmbientLight(0xcccccc);
     scene.add(ambientLight);
-    
+
     // Sun light.
     if(has3D) {
         var sunLight = new THREE.SpotLight(0xcccccc, .3);
         sunLight.position.set(0, 150000, 0);
         scene.add(sunLight);
     }
-    
+
     // Board.
     var Material = has3D ? THREE.MeshPhongMaterial : THREE.MeshBasicMaterial;
     var bottom = wG.makeBoard(w, h), top = wG.makeBoard(w, h, true);
@@ -755,17 +755,17 @@ function init(layers) {
         materials[2].overdraw = true, materials[3].overdraw = true;
     var board = new THREE.Mesh(new THREE.CubeGeometry(w, 1.54, h, has3D ? 1 : Math.ceil(w / 3), 1, has3D ? 1 : Math.ceil(h / 3), materials, {px: 0, nx: 0, pz: 0, nz: 0}), new THREE.MeshFaceMaterial());
     board.position.y = -100;
-    
+
     if(has3D)
         scene.add(board);
-    
+
     // Add the sides.
     var boardMaterial = new Material({shininess: 80, ambient: 0x333333, specular: 0xcccccc, color: 0x255005});
     var boardSides = new THREE.CubeGeometry(w, 1.54, h, 1, 1, 1, undefined, {py: 0, ny: 0});
     //boardSides.computeVertexNormals();
     boardSides = new THREE.Mesh(boardSides, boardMaterial);
     board.add(boardSides);
-    
+
     // Create all the holes.
     var holeMaterial = boardMaterial.clone();
     holeMaterial.side = THREE.BackSide;
@@ -785,13 +785,13 @@ function init(layers) {
             }
     if(!has3D)
         scene.add(board);
-    
+
     camera.lookAt(board.position);
-    
+
     var boardControls = new THREE.ObjectControls(board, renderer.domElement);
     boardControls.camera = camera;
     boardControls.eye = camera.position.clone().subSelf(board.position);
-    
+
     // Window resize handler.
     $(window).resize(function() {
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -800,28 +800,28 @@ function init(layers) {
         boardControls.screen.width = window.innerWidth, boardControls.screen.height = window.innerHeight;
         boardControls.radius = (window.innerWidth + window.innerHeight) / 4;
     }).resize();
-    
+
     // Scrolling wheel handler.
     $(document).mousewheel(function(event, delta, deltaX, deltaY) {
         board.position.y *= 1-deltaY*.06;
     });
-    
+
     document.body.appendChild(renderer.domElement);
-    
+
     // Stats.
     /*var stats = new Stats;
     $(stats.domElement).css({position: 'absolute', top: 0}).appendTo('body');*/
-    
+
     // Controls.
     var controls = $('<div class=controls>').appendTo('body'), controlsText = $('<span>').click(function() {
         controls.toggleClass('open');
         controlsText.text(controls.is('.open') ? 'Hide controls' : 'Show controls');
     }).appendTo(controls), controlsBox = $('<div>').appendTo(controls);
     controlsText.click();
-    
+
     // "Load other files" button.
     controlsBox.append($('<button>').text('Load other files').click(function(){location.reload()}));
-    
+
     // Layer visibility checkboxes.
     controlsBox.append('<br><br>Layers:');
     for(var i = 0; i < layers.length; i++) {
@@ -831,7 +831,7 @@ function init(layers) {
             repaint = 0;
         }.bind([checkbox, layers[i]])), /*layers[i].name*/wG.layerNames[layers[i].side+''+layers[i].type]).appendTo(controlsBox);
     }
-    
+
     var outline, repaint = 0;
     // "Show outline" checkbox.
     controlsBox.append('<br>', $('<input type=checkbox>').click(function() {
@@ -847,7 +847,7 @@ function init(layers) {
         }
         if(!this.checked)
             return;
-        
+
         outline = wG.findOutline(outlineLayers);
         if(!outline.path.length)
             return outline = undefined, alert('Can\'t find any outline!');
@@ -873,11 +873,11 @@ function init(layers) {
         outline.sides.rotation.x = Math.PI/2;
         repaint = layers.length+1;
     }), 'Show outline');
-    
+
     function small(text) {
         return $('<span>').css('font-size', 'small').append(text);
     }
-    
+
     // Area and Cost.
     var areaBox = $('<span>');
     controlsBox.append('<br><br>Area: ', areaBox);
@@ -888,36 +888,36 @@ function init(layers) {
         areaBox.html('').append(small(areaIN2+' in<sup>2</sup> ('+areaMM2+' mm<sup>2</sup>)'), ' ');//'<br>Cost: ', small('$'+areaIN2*2));
     }
     updateArea(w, h);
-    
+
     // "Save current view as image" button
     controlsBox.append('<br><br>', $('<button>').text('Save current view as image').click(function(){
         renderer.render(scene, camera);
-        
+
         // Get the PNG data: URL.
         var data = renderer.domElement.toDataURL();
-        
+
         // Open a new page and add the image with some text.
         var w = open();
         w.document.title = 'webGerber';
         w.document.body.innerHTML = 'To save the image, right click and press "Save image as..."<br>';
         w.document.body.appendChild($('<img>').attr('src', data)[0]);
     }));
-    
+
     // Mouse Controls (explanation of).
     controlsBox.append('<br><br>Mouse Controls:<br>Rotate ', small('- Left mouse button + drag'), '<br>Zoom ', small('- Scroll / Middle mouse button + drag'), '<br>Pan ', small('- Right mouse button + drag'));
-    
+
     //Order
     controlsBox.append('<br><br><br><br>Finished with your design?<br>', small('Order your PCBs from Mayhew Labs:<br>$1.50/in<sup>2</sup> for 3 copies'));//<br>$1.60/in<sup>2</sup> for 3 copies<br>$1.20/in<sup>2</sup> for 5 copies<br>'));
     controlsBox.append('<br>', $('<button>').text('Learn More').click(function(){
         // Open a new page and add the image with some text.
         window.open("http://mayhewlabs.com/order-pcbs","_self");
     }));
-    
+
     // Sort by type, but after listing them.
     layers.sort(function(a, b) {
         return (a.type || 10) - (b.type || 10);
     });
-    
+
     // Renders the scene (and repaints all the textures that need repainting.
     function render() {
         requestAnimationFrame(render);
@@ -930,7 +930,7 @@ function init(layers) {
                 // Skip any disabled layers.
                 while(repaint <= layers.length && !layers[repaint-1].enabled)
                     repaint++;
-                
+
                 if(repaint <= layers.length) { // Repaint a layer.
                     if(layers[repaint-1].side & wG.BOTTOM)
                         wG.renderBoard(bottom, layers[repaint-1], limits);//, bottomTexture.needsUpdate = true;
@@ -940,7 +940,7 @@ function init(layers) {
                     wG.renderOutline(bottom, outline, limits);//, bottomTexture.needsUpdate = true;
                     wG.renderOutline(top, outline, limits);//, topTexture.needsUpdate = true;
                 }
-                
+
                 // Are we finished repainting?
                 if(repaint > layers.length)
                     repaint = null,  loadingOverlay.hide(), /*controlsBox.css('color', '').find('input,button').each(function() {this.disabled = false}),*/ bottomTexture.needsUpdate = true, topTexture.needsUpdate = true;
@@ -961,13 +961,13 @@ $(function() {
     // Debug log, shows up if there's ?debug at the end of the URL.
     if(location.search.match(/(\?|&)debug/))
         wG.debugLog = $('<strong>').css({width: '100%', 'text-align': 'center', position: 'absolute', 'z-index': 1000, color: '#111', 'font-family': 'monospace'}).prependTo('body');
-    
+
     debug('Browser info: '+navigator.userAgent);
     if(typeof window.FileReader === 'undefined')
         debug('Your browser doesn\'t have file access');
-    
+
     loadingOverlay = $('<div class=overlay>').html('<div><div>Loading, please wait...</div></div>').appendTo('body');
-    
+
     var demoLayers = $('script[type="text/x-gerber"]');
     if(demoLayers.length)
         return void(setTimeout(function() {
@@ -979,9 +979,9 @@ $(function() {
                 return g;
             }).get());
         }, 0));
-    
+
     loadingOverlay.hide();
-    
+
     // Step 1 box, the comments are for the original demo.
     var main = $('<div class=main>').appendTo('body').append($('<h1>').html('Step 1:<br>Drop gerber files here'/*+'<br>(or click for a demo board)'*/)/*.click(function() {
         main.remove();
@@ -995,24 +995,24 @@ $(function() {
             }).get());
         }, 0);
     })*/);
-    
+
     var layerSelect = $('<select>');
     for(var i = 0; i < wG.layerTypes.length; i++)
         layerSelect.append($('<option>').val(wG.layerTypes[i]).text(wG.layerNames[wG.layerTypes[i]]));
-    
+
     // Stops the browser from doing anything with the dropped files (see Firefox).
     main.bind('dragover', function(ev) {
         ev.stopPropagation();
         ev.preventDefault();
     });
-    
+
     // Drop event handler, shows the Step 2 box.
     main.bind('drop', function(ev) {
         ev.stopPropagation();
         ev.preventDefault();
-        
+
         var step2 = $('<div>').append($('<h1>').html('Step 2:<br>Select the layers corresponding to the gerber files'));
-        
+
         var files = ev.originalEvent.dataTransfer.files, filePairs = [];
         for(var i = 0; i < files.length; i++) {
             //if(files[i].type && !files[i].type.match(/^text/))
@@ -1025,7 +1025,7 @@ $(function() {
         }
         if(!filePairs.length)
            return alert('No valid files found!');
-        
+
         // "Done" button.
         step2.append('<br>', $('<button>').text('Done').click(function() {
             // Count the layers.
@@ -1035,17 +1035,17 @@ $(function() {
                     continue;
                 layerNum++;
             }
-            
+
             // Just in case they didn't select any layer.
             if(!layerNum)
                 return alert('There has to be at one selected layer!');
-            
+
             var layers = [];
             for(var i = 0; i < filePairs.length; i++) {
                 var f = filePairs[i], which = f[1].val();
                 if(!which)
                     continue;
-                
+
                 var reader = new FileReader();
                 reader.onload = function(ev) {
                     var g;
@@ -1061,7 +1061,7 @@ $(function() {
                     g.type = this[2];
                     g.side = this[1];
                     g.name = this[0];
-                    
+
                     // Do we have all the layers?
                     if(layers.push(g) >= layerNum) {
                         main.remove();
@@ -1071,7 +1071,7 @@ $(function() {
                         }, 0);
                     }
                 }.bind([f[0].name, +which[0], +which[1]]);
-                
+
                 // Read the contents of the file, with the above callback.
                 reader.readAsText(f[0]);
             }

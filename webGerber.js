@@ -743,28 +743,30 @@ function init(layers) {
     var bottomTexture  = new THREE.Texture(bottom), topTexture  = new THREE.Texture(top);
     wG.clearBoard(bottom), wG.clearBoard(top);
     bottomTexture.needsUpdate = true, topTexture.needsUpdate = true;
+
+    var boardMaterial = new THREE.MeshBasicMaterial({shininess: 80, ambient: 0x333333, specular: 0xcccccc, color: 0x255005});
     var materials = [
-        null,
-        null,
-        new Material({shininess: 80, ambient: 0xaaaaaa, specular: 0xcccccc, map: topTexture}),
-        new Material({shininess: 80, ambient: 0xaaaaaa, specular: 0xcccccc, map: bottomTexture}),
-        null,
-        null
+        boardMaterial,
+        boardMaterial,
+        new THREE.MeshBasicMaterial({shininess: 80, ambient: 0xaaaaaa, specular: 0xcccccc, map: topTexture}),
+        new THREE.MeshBasicMaterial({shininess: 80, ambient: 0xaaaaaa, specular: 0xcccccc, map: bottomTexture}),
+        boardMaterial,
+        boardMaterial
     ];
     if(!has3D)
         materials[2].overdraw = true, materials[3].overdraw = true;
-    var board = new THREE.Mesh(new THREE.CubeGeometry(w, 1.54, h, has3D ? 1 : Math.ceil(w / 3), 1, has3D ? 1 : Math.ceil(h / 3), materials, {px: 0, nx: 0, pz: 0, nz: 0}), new THREE.MeshFaceMaterial());
+
+    var board = new THREE.Mesh(
+        new THREE.CubeGeometry(
+            w, 1.54, h,
+            has3D ? 1 : Math.ceil(w / 3), 1, has3D ? 1 : Math.ceil(h / 3)),
+        new THREE.MeshFaceMaterial(materials));
     board.position.y = -100;
 
     if(has3D)
         scene.add(board);
 
     // Add the sides.
-    var boardMaterial = new Material({shininess: 80, ambient: 0x333333, specular: 0xcccccc, color: 0x255005});
-    var boardSides = new THREE.CubeGeometry(w, 1.54, h, 1, 1, 1, undefined, {py: 0, ny: 0});
-    //boardSides.computeVertexNormals();
-    boardSides = new THREE.Mesh(boardSides, boardMaterial);
-    board.add(boardSides);
 
     // Create all the holes.
     var holeMaterial = boardMaterial.clone();

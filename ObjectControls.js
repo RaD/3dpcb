@@ -97,8 +97,8 @@ THREE.ObjectControls = function ( object, domElement ) {
         }
 
         var projection = _this.camera.up.clone().setLength( mouseOnBall.y );
-        projection.addSelf( _this.camera.up.clone().crossSelf( _this.eye ).setLength( mouseOnBall.x ) );
-        projection.addSelf( _this.eye.clone().setLength( mouseOnBall.z ) );
+        projection.add( _this.camera.up.clone().cross( _this.eye ).setLength( mouseOnBall.x ) );
+        projection.add( _this.eye.clone().setLength( mouseOnBall.z ) );
 
         return projection;//(new THREE.Quaternion).setFromEuler(_this.object.rotation.clone()/*.negate()*/).multiplyVector3(projection);
 
@@ -109,13 +109,13 @@ THREE.ObjectControls = function ( object, domElement ) {
 
         if ( angle ) {
 
-            var axis = ( new THREE.Vector3() ).cross( _rotateStart, _rotateEnd ).normalize();
+            var axis = ( new THREE.Vector3() ).crossVectors( _rotateStart, _rotateEnd ).normalize();
             angle *= _this.rotateSpeed;
 
             if ( _this.staticMoving )
                 _rotateStart = _rotateEnd;
             else {
-                _rotateStart.multiplyScalar(1 - _this.dynamicDampingFactor).addSelf(_rotateEnd.clone().multiplyScalar(_this.dynamicDampingFactor));
+                _rotateStart.multiplyScalar(1 - _this.dynamicDampingFactor).add(_rotateEnd.clone().multiplyScalar(_this.dynamicDampingFactor));
                 //var quaternion = new THREE.Quaternion();
                 //quaternion.setFromAxisAngle( axis, angle * ( _this.dynamicDampingFactor - 1.0 ) );
                 //quaternion.multiplyVector3( _rotateStart );
@@ -124,7 +124,7 @@ THREE.ObjectControls = function ( object, domElement ) {
 
             _this.object.useQuaternion = true;
             _this.object.quaternion.clone().inverse().multiplyVector3(axis);
-            _this.object.quaternion.multiplySelf((new THREE.Quaternion).setFromAxisAngle(axis, angle));
+            _this.object.quaternion.multiply((new THREE.Quaternion).setFromAxisAngle(axis, angle));
 
 
         }
@@ -154,15 +154,15 @@ THREE.ObjectControls = function ( object, domElement ) {
         if ( mouseChange.x || mouseChange.y ) {
             mouseChange.multiplyScalar( Math.abs(_this.object.position.y) * _this.panSpeed );
 
-            var pan = _this.eye.clone().crossSelf( _this.camera.up ).setLength( mouseChange.x );
-            pan.addSelf( _this.camera.up.clone().setLength( mouseChange.y ) );
+            var pan = _this.eye.clone().cross( _this.camera.up ).setLength( mouseChange.x );
+            pan.add( _this.camera.up.clone().setLength( mouseChange.y ) );
 
             _this.object.position.subSelf( pan );
 
             if ( _this.staticMoving )
                 _panStart = _panEnd;
             else
-                _panStart.addSelf( mouseChange.sub( _panEnd, _panStart ).multiplyScalar( _this.dynamicDampingFactor ) );
+                _panStart.add( mouseChange.sub( _panEnd, _panStart ).multiplyScalar( _this.dynamicDampingFactor ) );
 
         }
 

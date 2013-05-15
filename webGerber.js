@@ -792,7 +792,7 @@ function init(layers) {
 
     var boardControls = new THREE.ObjectControls(board, renderer.domElement);
     boardControls.camera = camera;
-    boardControls.eye = camera.position.clone().subSelf(board.position);
+    boardControls.eye = camera.position.clone().sub(board.position);
 
     // Window resize handler.
     $(window).resize(function() {
